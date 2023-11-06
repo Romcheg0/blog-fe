@@ -8,19 +8,20 @@ export default function Admin() {
   const { user } = useContext(UserContext)
   const navigate = useNavigate()
   useEffect(() => {
-    if (!user.username) {
+    if (!user?.username) {
       navigate(-1)
-    }
-    axios
-      .get(`http://localhost:4000/users/username/${user.username}`)
-      .then((res) => {
-        if (res?.data[0]?.role !== "admin") {
+    } else {
+      axios
+        .get(`http://localhost:4000/users/username/${user.username}`)
+        .then((res) => {
+          if (res?.data[0]?.role !== "admin") {
+            navigate(-1)
+          }
+        })
+        .catch((e) => {
           navigate(-1)
-        }
-      })
-      .catch((e) => {
-        navigate(-1)
-      })
+        })
+    }
   }, [])
   return (
     <>
