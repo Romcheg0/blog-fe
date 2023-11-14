@@ -76,10 +76,14 @@ const Modal = ({
                   value={currentPost.issue_date}
                   required
                   onChange={(e) => {
+                    console.log(currentPost.author_id, users[0].id)
                     setCurrentPost({
                       ...currentPost,
                       issue_date:
-                        e.target.value.replace("T", " ") ||
+                        new Date(e.target.value)
+                          .toISOString()
+                          .replace("T", " ")
+                          .replace(/\.\d\d\dZ/, "") ||
                         new Date()
                           .toISOString()
                           .replace("T", " ")
@@ -90,32 +94,37 @@ const Modal = ({
                   id="issueDateInput"
                 />
               </div>
-              <div className="mb-3">
-                <label htmlFor="userSelect" className="form-label">
-                  Author:{" "}
-                </label>
-                <select
-                  id="userSelect"
-                  className="form-select"
-                  aria-label="Select the author"
-                  required
-                  value={currentPost.author_id || ""}
-                  onChange={(e) => {
-                    setCurrentPost({
-                      ...currentPost,
-                      author_id: e.target.value,
-                    })
-                  }}
-                >
-                  {users.map((item) => {
-                    return (
-                      <option key={item.id} value={item.id}>
-                        {item.id} {item.username}
-                      </option>
-                    )
-                  })}
-                </select>
-              </div>
+              {users.length && (
+                <div className="mb-3">
+                  <label htmlFor="userSelect" className="form-label">
+                    Author:{" "}
+                  </label>
+                  <select
+                    id="userSelect"
+                    className="form-select"
+                    aria-label="Select the author"
+                    required
+                    value={currentPost.author_id || 0}
+                    onChange={(e) => {
+                      setCurrentPost({
+                        ...currentPost,
+                        author_id: e.target.value,
+                      })
+                    }}
+                  >
+                    <option value={0} disabled={true}>
+                      -- Select an author --
+                    </option>
+                    {users.map((item) => {
+                      return (
+                        <option key={item.id} value={item.id}>
+                          {item.id} {item.username}
+                        </option>
+                      )
+                    })}
+                  </select>
+                </div>
+              )}
             </form>
           </div>
           <div className="modal-footer">
@@ -161,7 +170,7 @@ export default function AdminPosts() {
       .toISOString()
       .replace("T", " ")
       .replace(/\.\d\d\dZ/, ""),
-    author_id: null,
+    author_id: 0,
   })
   function sendFormData(e) {
     e.preventDefault()
@@ -170,10 +179,17 @@ export default function AdminPosts() {
       currentPost.title.length < 4 ||
       currentPost.content.length < 4 ||
       !currentPost.issue_date ||
-      currentPost.author_id === null
+      currentPost.author_id == 0
     ) {
       setButtonMode("error")
       alert("Incorrect data!")
+      console.error(
+        currentPost.title,
+        currentPost.content,
+        !!currentPost.issue_date,
+        currentPost.issue_date,
+        currentPost.author_id
+      )
       setTimeout(() => {
         setButtonMode(null)
       }, 1000)
@@ -223,6 +239,10 @@ export default function AdminPosts() {
       .get(`http://localhost:4000/posts`)
       .then((res) => {
         setPosts({ data: res.data, loading: false, error: null })
+        if (currentPost.author_id === null) {
+          console.log("a")
+          setCurrentPost({ ...currentPost, author_id: res.data[0].author_id })
+        }
       })
       .catch((e) => {
         setPosts({ data: [], loading: false, error: e.message })
@@ -313,7 +333,7 @@ export default function AdminPosts() {
                   {" | "}
                   {users.data.filter(
                     (author) => author.id === item.author_id
-                  )[0].username || ""}
+                  )[0]?.username || ""}
                 </div>
                 <div className="card-text w-75">
                   {item.content.length > 400
